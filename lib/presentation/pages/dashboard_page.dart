@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/auth_provider.dart';
+import '../state/profile_provider.dart';
 import 'notificaciones/notificaciones_page.dart';
 
 import 'musica/mi_musica_page.dart';
@@ -15,6 +16,15 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Cargar perfil automáticamente al ingresar al Dashboard
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProfileProvider>(context, listen: false).loadProfile();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

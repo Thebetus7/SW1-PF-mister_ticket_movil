@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../data/repositories/profile_repository.dart';
 import 'package:image_picker/image_picker.dart' show XFile;
+import '../../core/constants/api_constants.dart';
 
 /// Estado global del perfil del usuario autenticado.
 /// Gestiona la carga, actualización de datos y subida de foto.
@@ -43,12 +44,20 @@ class ProfileProvider extends ChangeNotifier {
     final rawUrl = _profileData?['foto_url'];
     if (rawUrl == null) return null;
 
-    // Si la URL contiene localhost o 127.0.0.1 y estamos en móvil, la cambiamos a 10.0.2.2
-    // para que el emulador Android local pueda conectarse a MinIO en la PC host.
+    String targetHost = '10.0.2.2'; // Por defecto emulador
+    try {
+      final uri = Uri.parse(ApiConstants.baseUrl);
+      if (uri.host.isNotEmpty) {
+        targetHost = uri.host;
+      }
+    } catch (_) {}
+
+    // Si la URL contiene localhost o 127.0.0.1 y estamos en móvil, la cambiamos al host del backend
+    // para que el emulador Android local o el celular puedan conectarse a MinIO en la PC host.
     if (!kIsWeb && (rawUrl.contains('localhost:9000') || rawUrl.contains('127.0.0.1:9000'))) {
       return rawUrl
-          .replaceAll('localhost:9000', '10.0.2.2:9000')
-          .replaceAll('127.0.0.1:9000', '10.0.2.2:9000');
+          .replaceAll('localhost:9000', '$targetHost:9000')
+          .replaceAll('127.0.0.1:9000', '$targetHost:9000');
     }
     return rawUrl;
   }

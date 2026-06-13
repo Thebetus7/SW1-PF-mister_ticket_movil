@@ -120,7 +120,39 @@ class ApiClient {
       return ApiResponse(success: true, data: body, statusCode: statusCode);
     }
 
+    String errorMessage = 'Error inesperado ($statusCode)';
+    if (body != null) {
+      if (body is Map) {
+        if (body.containsKey('detail')) {
+          errorMessage = body['detail'].toString();
+        } else if (body.containsKey('non_field_errors')) {
+          final nfe = body['non_field_errors'];
+          if (nfe is List) {
+            errorMessage = nfe.join(', ');
+          } else {
+            errorMessage = nfe.toString();
+          }
+        } else {
+          final fieldsErrors = <String>[];
+          body.forEach((key, value) {
+            if (value is List) {
+              fieldsErrors.add('$key: ${value.join(', ')}');
+            } else {
+              fieldsErrors.add('$key: $value');
+            }
+          });
+          if (fieldsErrors.isNotEmpty) {
+            errorMessage = fieldsErrors.join('\n');
+          }
+        }
+      } else if (body is String) {
+        errorMessage = body;
+      }
+    }
+
     switch (statusCode) {
+      case 400:
+        throw ValidationApiException(errorMessage, errors: body);
       case 401:
         throw UnauthorizedException(
             'Sesión expirada. Inicie sesión nuevamente.');
@@ -133,8 +165,7 @@ class ApiClient {
       case 500:
         throw ServerException('Error interno del servidor.');
       default:
-        throw ApiException('Error inesperado ($statusCode)',
-            statusCode: statusCode);
+        throw ApiException(errorMessage, statusCode: statusCode);
     }
   }
 

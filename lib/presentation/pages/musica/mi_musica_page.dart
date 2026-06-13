@@ -20,11 +20,15 @@ class _MiMusicaPageState extends State<MiMusicaPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_initialized) {
-      _initialized = true;
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    // Escuchar cambios del perfil para reaccionar cuando termine de cargarse en segundo plano
+    final profileProvider = Provider.of<ProfileProvider>(context);
+    
+    if (profileProvider.profileData != null && !_initialized) {
       if (profileProvider.esArtista) {
-        Provider.of<CancionProvider>(context, listen: false).loadCanciones();
+        _initialized = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Provider.of<CancionProvider>(context, listen: false).loadCanciones();
+        });
       }
     }
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart' show XFile;
 import '../../data/repositories/cancion_repository.dart';
+import '../../core/constants/api_constants.dart';
 
 class CancionProvider extends ChangeNotifier {
   final CancionRepository _repository = CancionRepository();
@@ -14,13 +15,22 @@ class CancionProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  /// Modifica la URL local de MinIO para que el emulador Android la reconozca.
+  /// Modifica la URL local de MinIO para que el emulador Android o el dispositivo físico la reconozca.
   String fixLocalhostUrl(String? rawUrl) {
     if (rawUrl == null) return '';
+    
+    String targetHost = '10.0.2.2'; // Por defecto emulador
+    try {
+      final uri = Uri.parse(ApiConstants.baseUrl);
+      if (uri.host.isNotEmpty) {
+        targetHost = uri.host;
+      }
+    } catch (_) {}
+
     if (!kIsWeb && (rawUrl.contains('localhost:9000') || rawUrl.contains('127.0.0.1:9000'))) {
       return rawUrl
-          .replaceAll('localhost:9000', '10.0.2.2:9000')
-          .replaceAll('127.0.0.1:9000', '10.0.2.2:9000');
+          .replaceAll('localhost:9000', '$targetHost:9000')
+          .replaceAll('127.0.0.1:9000', '$targetHost:9000');
     }
     return rawUrl;
   }
