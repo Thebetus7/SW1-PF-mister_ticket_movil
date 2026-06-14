@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../data/models/evento_feed.dart';
+import '../compra/seleccion_zona_page.dart';
+
 
 class EventoFeedCard extends StatefulWidget {
   final EventoFeedModel evento;
@@ -53,12 +55,12 @@ class _EventoFeedCardState extends State<EventoFeedCard> {
 
   @override
   Widget build(BuildContext context) {
-    final themeColor = const Color(0xFF7C6FF7);
+    final themeColor = Theme.of(context).primaryColor;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.05), width: 1.5),
         boxShadow: [
@@ -253,14 +255,17 @@ class _EventoFeedCardState extends State<EventoFeedCard> {
                   padding: EdgeInsets.zero,
                 ),
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Compra de boletos para "${widget.evento.nombre}" no disponible en versión de demostración.'),
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: themeColor,
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SeleccionZonaPage(
+                        eventoId: widget.evento.id,
+                        eventoNombre: widget.evento.nombre,
+                      ),
                     ),
                   );
                 },
+
                 child: const Text(
                   'Comprar Boletos',
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
@@ -299,7 +304,7 @@ class _EventoFeedCardState extends State<EventoFeedCard> {
                     margin: const EdgeInsets.only(right: 12, bottom: 8),
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F0F1A),
+                      color: Theme.of(context).scaffoldBackgroundColor,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.white.withOpacity(0.04)),
                     ),

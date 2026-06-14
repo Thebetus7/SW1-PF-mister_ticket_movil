@@ -4,7 +4,7 @@ import '../state/auth_provider.dart';
 import '../state/profile_provider.dart';
 import 'notificaciones/notificaciones_page.dart';
 import 'home/home_feed_page.dart';
-
+import 'tickets/mis_tickets_page.dart';
 import 'musica/mi_musica_page.dart';
 import 'perfil/perfil_page.dart';
 
@@ -17,6 +17,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
+  bool _initialized = false;
 
   @override
   void initState() {
@@ -28,21 +29,100 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is int) {
+        _selectedIndex = args;
+      }
+      _initialized = true;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final profileProvider = Provider.of<ProfileProvider>(context);
     final isFan = profileProvider.roles.contains('fan');
 
-    // Definimos las 4 pestañas de navegación
-    final List<Widget> pages = [
-      isFan ? const HomeFeedPage() : _buildHomeTab(context),
-      const NotificacionesPage(),
-      const MiMusicaPage(),
-      const PerfilPage(),
-    ];
+    // Construir dinámicamente las pestañas según el rol
+    final List<Widget> pages = [];
+    final List<BottomNavigationBarItem> navBarItems = [];
+
+    if (isFan) {
+      pages.addAll([
+        const HomeFeedPage(),
+        const NotificacionesPage(),
+        const MisTicketsPage(),
+        const MiMusicaPage(),
+        const PerfilPage(),
+      ]);
+      navBarItems.addAll(const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home_rounded),
+          label: 'Inicio',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.notifications_none_rounded),
+          activeIcon: Icon(Icons.notifications_rounded),
+          label: 'Alertas',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.confirmation_number_outlined),
+          activeIcon: Icon(Icons.confirmation_number_rounded),
+          label: 'Tickets',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.library_music_outlined),
+          activeIcon: Icon(Icons.library_music_rounded),
+          label: 'Mi Música',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline_rounded),
+          activeIcon: Icon(Icons.person_rounded),
+          label: 'Yo',
+        ),
+      ]);
+    } else {
+      pages.addAll([
+        _buildHomeTab(context),
+        const NotificacionesPage(),
+        const MiMusicaPage(),
+        const PerfilPage(),
+      ]);
+      navBarItems.addAll(const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home_rounded),
+          label: 'Inicio',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.notifications_none_rounded),
+          activeIcon: Icon(Icons.notifications_rounded),
+          label: 'Alertas',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.library_music_outlined),
+          activeIcon: Icon(Icons.library_music_rounded),
+          label: 'Mi Música',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline_rounded),
+          activeIcon: Icon(Icons.person_rounded),
+          label: 'Yo',
+        ),
+      ]);
+    }
+
+    // Asegurarse de que el índice seleccionado no exceda el rango actual de páginas
+    if (_selectedIndex >= pages.length) {
+      _selectedIndex = 0;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F1A),
-      // Solo mostramos el AppBar global en la pestaña de Inicio
+      // Solo mostramos el AppBar global en la pestaña de Inicio (índice 0)
       appBar: _selectedIndex == 0
           ? AppBar(
               backgroundColor: const Color(0xFF1A1A2E),
@@ -94,31 +174,11 @@ class _DashboardPageState extends State<DashboardPage> {
           type: BottomNavigationBarType.fixed,
           selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
           unselectedLabelStyle: const TextStyle(fontSize: 11),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              activeIcon: Icon(Icons.home_rounded),
-              label: 'Inicio',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_none_rounded),
-              activeIcon: Icon(Icons.notifications_rounded),
-              label: 'Alertas',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.library_music_outlined),
-              activeIcon: Icon(Icons.library_music_rounded),
-              label: 'Mi Música',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Yo',
-            ),
-          ],
+          items: navBarItems,
         ),
       ),
     );
+
   }
 
   Widget _buildHomeTab(BuildContext context) {
