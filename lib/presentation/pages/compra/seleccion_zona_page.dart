@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../state/compra_provider.dart';
 import '../../../data/models/zona_model.dart';
 import 'checkout_page.dart';
+import 'confirmacion_compra_page.dart';
+
 
 class SeleccionZonaPage extends StatefulWidget {
   final int eventoId;
@@ -23,6 +25,8 @@ class _SeleccionZonaPageState extends State<SeleccionZonaPage> {
   final Map<int, int> _cantidades = {};
   int? _selectedZonaId;
   int _cantidad = 0;
+  bool _isProcessingDirect = false;
+
 
   @override
   void initState() {
@@ -54,6 +58,179 @@ class _SeleccionZonaPageState extends State<SeleccionZonaPage> {
     });
   }
 
+  void _showPaymentOptions(BuildContext context, ZonaModel selectedZona) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF161626),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      builder: (ctx) {
+        final themeColor = const Color(0xFF7C6FF7);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Elige tu método de pago',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Total: ${(selectedZona.precio * _cantidad).toStringAsFixed(2)} BOB',
+                  style: TextStyle(
+                    color: themeColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                
+                // Opción 1: Stripe (Tarjeta)
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx); // Cerrar bottom sheet
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CheckoutPage(
+                          eventoId: widget.eventoId,
+                          eventoNombre: widget.eventoNombre,
+                          zonaId: selectedZona.id,
+                          zonaNombre: selectedZona.nombre,
+                          cantidad: _cantidad,
+                          precioUnitario: selectedZona.precio,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.credit_card_rounded, color: Colors.white),
+                  label: const Text('PAGAR CON TARJETA (STRIPE)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2C2C4E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Opción 2: Compra Directa (Simulado/Desarrollo)
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx); // Cerrar bottom sheet
+                    _ejecutarCompraDirecta(selectedZona);
+                  },
+                  icon: const Icon(Icons.flash_on_rounded, color: Colors.amber),
+                  label: const Text('COMPRA DIRECTA (DESARROLLO)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E5E3A),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Opción 3: QR Placeholder
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx); // Cerrar bottom sheet
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Pago por QR (Simulado) estará disponible en la versión final de producción.'),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: Color(0xFF7C6FF7),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.qr_code_2_rounded, color: Colors.white30),
+                  label: const Text('PAGAR CON QR (PLACEHOLDER)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3E2D54).withOpacity(0.5),
+                    foregroundColor: Colors.white30,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _ejecutarCompraDirecta(ZonaModel selectedZona) async {
+    setState(() {
+      _isProcessingDirect = true;
+    });
+
+    final provider = Provider.of<CompraProvider>(context, listen: false);
+    final success = await provider.comprar(
+      eventoId: widget.eventoId,
+      zonaId: selectedZona.id,
+      cantidad: _cantidad,
+      paymentMethodId: 'pm_desarrollo_directo',
+    );
+
+    if (mounted) {
+      setState(() {
+        _isProcessingDirect = false;
+      });
+
+      if (success) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ConfirmacionCompraPage(
+              compraResponse: provider.compraResponse!,
+            ),
+          ),
+          (route) => route.isFirst,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(provider.error ?? 'Error al procesar la compra directa.'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final themeColor = const Color(0xFF7C6FF7);
@@ -61,8 +238,11 @@ class _SeleccionZonaPageState extends State<SeleccionZonaPage> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: Consumer<CompraProvider>(
-        builder: (context, provider, child) {
+      body: Stack(
+        children: [
+          Consumer<CompraProvider>(
+            builder: (context, provider, child) {
+
           if (provider.isLoading) {
             return const Center(
               child: CircularProgressIndicator(color: Color(0xFF7C6FF7)),
@@ -520,22 +700,10 @@ class _SeleccionZonaPageState extends State<SeleccionZonaPage> {
                               padding: EdgeInsets.zero,
                             ),
                             onPressed: selectedZona != null
-                                ? () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => CheckoutPage(
-                                          eventoId: widget.eventoId,
-                                          eventoNombre: widget.eventoNombre,
-                                          zonaId: selectedZona!.id,
-                                          zonaNombre: selectedZona.nombre,
-                                          cantidad: _cantidad,
-                                          precioUnitario: selectedZona.precio,
-                                        ),
-                                      ),
-                                    );
-                                  }
+                                ? () => _showPaymentOptions(context, selectedZona!)
                                 : null,
+
+
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -565,8 +733,28 @@ class _SeleccionZonaPageState extends State<SeleccionZonaPage> {
               ),
             ],
           );
-        },
+            },
+          ),
+          if (_isProcessingDirect)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: Color(0xFF7C6FF7)),
+                    SizedBox(height: 16),
+                    Text(
+                      'Procesando compra directa...',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 }
+
