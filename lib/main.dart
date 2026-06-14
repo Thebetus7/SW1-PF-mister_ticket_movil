@@ -6,6 +6,7 @@ import 'presentation/state/auth_provider.dart';
 import 'presentation/state/product_provider.dart';
 import 'presentation/state/profile_provider.dart';
 import 'presentation/state/cancion_provider.dart';
+import 'presentation/state/feed_provider.dart';
 
 void main() {
   runApp(
@@ -15,6 +16,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => CancionProvider()),
+        ChangeNotifierProvider(create: (_) => FeedProvider()),
       ],
       child: const MisterTicketApp(),
     ),

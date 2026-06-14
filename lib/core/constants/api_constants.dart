@@ -12,4 +12,7 @@ class ApiConstants {
   
   // Musica endpoints
   static const String canciones = '$baseUrl/musica/canciones/';
+
+  // Feed endpoint
+  static const String feed = '$baseUrl/eventos/eventos/feed/';
 }

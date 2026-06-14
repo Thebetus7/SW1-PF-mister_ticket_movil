@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../state/auth_provider.dart';
 import '../state/profile_provider.dart';
 import 'notificaciones/notificaciones_page.dart';
+import 'home/home_feed_page.dart';
 
 import 'musica/mi_musica_page.dart';
 import 'perfil/perfil_page.dart';
@@ -28,9 +29,12 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final profileProvider = Provider.of<ProfileProvider>(context);
+    final isFan = profileProvider.roles.contains('fan');
+
     // Definimos las 4 pestañas de navegación
     final List<Widget> pages = [
-      _buildHomeTab(context),
+      isFan ? const HomeFeedPage() : _buildHomeTab(context),
       const NotificacionesPage(),
       const MiMusicaPage(),
       const PerfilPage(),
