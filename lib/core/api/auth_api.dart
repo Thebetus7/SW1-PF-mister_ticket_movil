@@ -20,4 +20,10 @@ class AuthApi {
   Future<ApiResponse> getProfile() {
     return _client.get(ApiConstants.profile);
   }
+
+  Future<ApiResponse> refreshToken(String refreshToken) {
+    return _client.post(ApiConstants.tokenRefresh, body: {
+      'refresh': refreshToken,
+    });
+  }
 }

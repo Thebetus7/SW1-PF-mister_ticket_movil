@@ -5,6 +5,7 @@ class CancionListItem extends StatelessWidget {
   final bool isPlaying;
   final VoidCallback onPlayToggle;
   final VoidCallback onDelete;
+  final VoidCallback? onPublishToggle;
 
   const CancionListItem({
     super.key,
@@ -12,6 +13,7 @@ class CancionListItem extends StatelessWidget {
     required this.isPlaying,
     required this.onPlayToggle,
     required this.onDelete,
+    this.onPublishToggle,
   });
 
   @override
@@ -107,6 +109,10 @@ class CancionListItem extends StatelessWidget {
                         _buildMetaBadge(formato, const Color(0xFFE74C3C)),
                         const SizedBox(width: 6),
                         _buildMetaBadge(tamano, const Color(0xFF3498DB)),
+                        if (onPublishToggle != null) ...[
+                          const SizedBox(width: 6),
+                          _buildPublishBadge(cancion['publicado'] ?? false, onPublishToggle!),
+                        ],
                         const SizedBox(width: 6),
                         Row(
                           children: [
@@ -164,6 +170,44 @@ class CancionListItem extends StatelessWidget {
           fontSize: 9,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPublishBadge(bool publicado, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: publicado ? const Color(0xFF2ECC71).withOpacity(0.12) : Colors.white.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: publicado ? const Color(0xFF2ECC71).withOpacity(0.4) : Colors.white.withOpacity(0.2),
+            width: 0.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              publicado ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+              color: publicado ? const Color(0xFF2ECC71) : Colors.white60,
+              size: 10,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              publicado ? 'PUBLICADO' : 'NO PUBLICADO',
+              style: TextStyle(
+                color: publicado ? const Color(0xFF2ECC71) : Colors.white60,
+                fontSize: 8,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ),
     );

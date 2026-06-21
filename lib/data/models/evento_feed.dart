@@ -4,8 +4,10 @@ class EventoFeedModel {
   final String estado;
   final String lugarNombre;
   final String promotorRazon;
+  final int promotorId;
   final DateTime fechaInicio;
   final DateTime fechaFin;
+  final DateTime updatedAt;
   final List<PresentacionFeedModel> presentaciones;
 
   EventoFeedModel({
@@ -14,8 +16,10 @@ class EventoFeedModel {
     required this.estado,
     required this.lugarNombre,
     required this.promotorRazon,
+    required this.promotorId,
     required this.fechaInicio,
     required this.fechaFin,
+    required this.updatedAt,
     required this.presentaciones,
   });
 
@@ -30,8 +34,12 @@ class EventoFeedModel {
       estado: json['estado'] ?? '',
       lugarNombre: json['lugar_nombre'] ?? 'Sin lugar asignado',
       promotorRazon: json['promotor_razon'] ?? 'Sin promotor',
+      promotorId: json['promotor'] ?? 0,
       fechaInicio: DateTime.parse(json['fecha_inicio']),
       fechaFin: DateTime.parse(json['fecha_fin']),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : DateTime.parse(json['fecha_inicio']),
       presentaciones: presentacionesList,
     );
   }

@@ -18,4 +18,11 @@ class CompraApi {
   Future<ApiResponse> getMisTickets() {
     return _client.get(ApiConstants.misTickets);
   }
+
+  Future<ApiResponse> transferirTicket(int ticketId, int destinatarioId) {
+    return _client.post(
+      ApiConstants.transferirTicket(ticketId),
+      body: {'destinatario_id': destinatarioId},
+    );
+  }
 }

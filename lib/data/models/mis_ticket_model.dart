@@ -8,6 +8,8 @@ class MisTicketModel {
   final String eventoNombre;
   final DateTime eventoFecha;
   final AsientoDetalleModel? asientoDetalle;
+  final bool transferido;
+  final bool transferible;
   final DateTime createdAt;
 
   MisTicketModel({
@@ -18,6 +20,8 @@ class MisTicketModel {
     required this.eventoNombre,
     required this.eventoFecha,
     required this.asientoDetalle,
+    required this.transferido,
+    required this.transferible,
     required this.createdAt,
   });
 
@@ -34,6 +38,8 @@ class MisTicketModel {
       asientoDetalle: json['asiento_detalle'] != null
           ? AsientoDetalleModel.fromJson(json['asiento_detalle'])
           : null,
+      transferido: json['transferido'] ?? false,
+      transferible: json['transferible'] ?? false,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),

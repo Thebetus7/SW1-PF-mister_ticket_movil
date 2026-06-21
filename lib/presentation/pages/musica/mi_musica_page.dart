@@ -238,6 +238,19 @@ class _MiMusicaPageState extends State<MiMusicaPage> {
           cancion: cancion,
           isPlaying: isPlaying,
           onPlayToggle: () => _reproducirCancion(cancion),
+          onPublishToggle: () async {
+            final success = await provider.togglePublicado(id, cancion['publicado'] ?? false);
+            if (!success && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(provider.errorMessage ?? 'Error al cambiar estado de publicación'),
+                  backgroundColor: const Color(0xFFE74C3C),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              );
+            }
+          },
           onDelete: () async {
             final success = await provider.deleteCancion(id);
             if (success) {

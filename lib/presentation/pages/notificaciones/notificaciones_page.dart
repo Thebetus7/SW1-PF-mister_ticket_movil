@@ -1,37 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../state/notificacion_provider.dart';
+import 'widgets/notificacion_list_item.dart';
+import 'pages/detalle_evento_notificacion_page.dart';
 
-class NotificacionesPage extends StatelessWidget {
+class NotificacionesPage extends StatefulWidget {
   const NotificacionesPage({super.key});
 
   @override
+  State<NotificacionesPage> createState() => _NotificacionesPageState();
+}
+
+class _NotificacionesPageState extends State<NotificacionesPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Forzar la recarga al entrar a la pantalla de notificaciones
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<NotificacionProvider>(context, listen: false).cargarNotificaciones();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Lista simulada de notificaciones con diseño premium
-    final notificaciones = [
-      {
-        'title': '¡Nuevo concierto anunciado!',
-        'body': 'Duki se presentará el 15 de Octubre. ¡Preventa disponible mañana!',
-        'time': 'Hace 5 min',
-        'icon': Icons.campaign_rounded,
-        'color': const Color(0xFF7C6FF7),
-        'unread': true,
-      },
-      {
-        'title': 'Compra de Ticket Exitosa 🎉',
-        'body': 'Tu boleto para "Coldplay - Music of the Spheres" ha sido emitido con éxito.',
-        'time': 'Hace 2 horas',
-        'icon': Icons.confirmation_number_rounded,
-        'color': const Color(0xFF2ECC71),
-        'unread': false,
-      },
-      {
-        'title': 'Perfil verificado',
-        'body': 'Tu perfil de Artista ha sido verificado. Ya puedes importar tu música.',
-        'time': 'Hace 1 día',
-        'icon': Icons.verified_rounded,
-        'color': const Color(0xFF3498DB),
-        'unread': false,
-      },
-    ];
+    final notificacionProvider = Provider.of<NotificacionProvider>(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F1A),
@@ -41,116 +33,152 @@ class NotificacionesPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            const Text(
-              'Notificaciones',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Mantente al día con tus eventos y música',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Notificaciones',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                if (notificacionProvider.unreadCount > 0)
+                  TextButton(
+                    onPressed: () => notificacionProvider.marcarTodasLeidas(),
+                    child: const Text(
+                      'Leer todo',
+                      style: TextStyle(
+                        color: Color(0xFF7C6FF7),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 24),
             Expanded(
-              child: ListView.builder(
-                itemCount: notificaciones.length,
-                physics: const BouncingScrollPhysics(),
-                itemBuilder: (context, index) {
-                  final notif = notificaciones[index];
-                  final isUnread = notif['unread'] as bool;
+              child: RefreshIndicator(
+                color: const Color(0xFF7C6FF7),
+                backgroundColor: const Color(0xFF1E1E2E),
+                onRefresh: () => notificacionProvider.cargarNotificaciones(),
+                child: notificacionProvider.isLoading && notificacionProvider.notificaciones.isEmpty
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF7C6FF7)))
+                    : notificacionProvider.notificaciones.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.builder(
+                            itemCount: notificacionProvider.notificaciones.length,
+                            physics: const BouncingScrollPhysics(),
+                            itemBuilder: (context, index) {
+                              final notif = notificacionProvider.notificaciones[index];
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E2E),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: isUnread ? const Color(0xFF7C6FF7).withOpacity(0.3) : const Color(0xFF2A2A4E),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Icono circular
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: (notif['color'] as Color).withOpacity(0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            notif['icon'] as IconData,
-                            color: notif['color'] as Color,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-
-                        // Contenido de la notificación
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      notif['title'] as String,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: isUnread ? FontWeight.bold : FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                              return Dismissible(
+                                key: Key(notif.id.toString()),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  margin: const EdgeInsets.only(bottom: 14),
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 24),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE74C3C),
+                                    borderRadius: BorderRadius.circular(18),
                                   ),
-                                  if (isUnread)
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF7C6FF7),
-                                        shape: BoxShape.circle,
+                                  child: const Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: Colors.white,
+                                    size: 26,
+                                  ),
+                                ),
+                                onDismissed: (direction) {
+                                  // Llamar a eliminar en el servidor
+                                  notificacionProvider.eliminarNotificacion(notif.id);
+                                  
+                                  // Mostrar SnackBar de aviso
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                        'Notificación eliminada',
+                                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      ),
+                                      backgroundColor: const Color(0xFFE74C3C),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                notif['body'] as String,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.6),
-                                  fontSize: 13,
-                                  height: 1.3,
+                                  );
+                                },
+                                child: NotificacionListItem(
+                                  notificacion: notif,
+                                  onTap: () {
+                                    // Marcar como leída en local/servidor
+                                    notificacionProvider.marcarLeida(notif.id);
+                                    
+                                    // Si está asociada a un evento, ir al detalle
+                                    if (notif.eventoId != null) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => DetalleEventoNotificacionPage(
+                                            eventoId: notif.eventoId!,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                notif['time'] as String,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.3),
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
+                              );
+                            },
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E2E),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF2A2A4E)),
+            ),
+            child: const Icon(
+              Icons.notifications_none_rounded,
+              size: 50,
+              color: Colors.white30,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Sin notificaciones',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Te avisaremos cuando haya noticias importantes sobre tus artistas o eventos favoritos.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white38, fontSize: 13, height: 1.5),
+          ),
+        ],
       ),
     );
   }

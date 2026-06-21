@@ -11,7 +11,11 @@ class AuthRepository {
       return false;
     }
   }
-  
+
+  Future<bool> hasStoredSession() => _authService.hasStoredSession();
+
+  Future<bool> restoreSession() => _authService.validateSession();
+
   Future<void> logout() async {
     await _authService.logout();
   }

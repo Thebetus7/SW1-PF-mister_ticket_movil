@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 import '../state/auth_provider.dart';
 import '../state/profile_provider.dart';
 import 'notificaciones/notificaciones_page.dart';
+import 'notificaciones/pages/detalle_evento_notificacion_page.dart';
 import 'home/home_feed_page.dart';
 import 'tickets/mis_tickets_page.dart';
 import 'musica/mi_musica_page.dart';
 import 'perfil/perfil_page.dart';
+import '../state/notificacion_provider.dart';
+import '../../config/routes.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -15,17 +18,29 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState extends State<DashboardPage> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    // Cargar perfil automáticamente al ingresar al Dashboard
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ProfileProvider>(context, listen: false).loadProfile();
-    });
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final notifProvider = Provider.of<NotificacionProvider>(context, listen: false);
+      notifProvider.cargarNotificaciones(silent: true);
+      notifProvider.refrescarTokenFCM();
+    }
   }
 
   @override
@@ -40,12 +55,37 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  Future<void> _logout() async {
+    Provider.of<NotificacionProvider>(context, listen: false).resetOnLogout();
+    await Provider.of<AuthProvider>(context, listen: false).logout();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final notificacionProvider = Provider.of<NotificacionProvider>(context);
+    if (notificacionProvider.routeEventId != null) {
+      final int evId = notificacionProvider.routeEventId!;
+      notificacionProvider.clearRouteEventId();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DetalleEventoNotificacionPage(eventoId: evId),
+          ),
+        );
+      });
+    }
+
     final profileProvider = Provider.of<ProfileProvider>(context);
     final isFan = profileProvider.roles.contains('fan');
+    final nombreUsuario = (profileProvider.nombreCompleto != null &&
+            profileProvider.nombreCompleto!.isNotEmpty)
+        ? profileProvider.nombreCompleto!
+        : profileProvider.username;
 
-    // Construir dinámicamente las pestañas según el rol
     final List<Widget> pages = [];
     final List<BottomNavigationBarItem> navBarItems = [];
 
@@ -86,7 +126,7 @@ class _DashboardPageState extends State<DashboardPage> {
       ]);
     } else {
       pages.addAll([
-        _buildHomeTab(context),
+        const HomeFeedPage(),
         const NotificacionesPage(),
         const MiMusicaPage(),
         const PerfilPage(),
@@ -115,29 +155,44 @@ class _DashboardPageState extends State<DashboardPage> {
       ]);
     }
 
-    // Asegurarse de que el índice seleccionado no exceda el rango actual de páginas
     if (_selectedIndex >= pages.length) {
       _selectedIndex = 0;
     }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F1A),
-      // Solo mostramos el AppBar global en la pestaña de Inicio (índice 0)
       appBar: _selectedIndex == 0
           ? AppBar(
               backgroundColor: const Color(0xFF1A1A2E),
-              title: const Text(
-                'MisterTicket',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              title: Row(
+                children: [
+                  const Text(
+                    'MisterTicket',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 8),
+                  if (nombreUsuario.isNotEmpty)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 6.0),
+                        child: Text(
+                          nombreUsuario,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.45),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.logout_rounded, color: Colors.white70),
                   tooltip: 'Cerrar sesión',
-                  onPressed: () {
-                    Provider.of<AuthProvider>(context, listen: false).logout();
-                    Navigator.pushReplacementNamed(context, '/');
-                  },
+                  onPressed: _logout,
                 )
               ],
               elevation: 0,
@@ -175,141 +230,6 @@ class _DashboardPageState extends State<DashboardPage> {
           selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
           unselectedLabelStyle: const TextStyle(fontSize: 11),
           items: navBarItems,
-        ),
-      ),
-    );
-
-  }
-
-  Widget _buildHomeTab(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 10),
-          const Text(
-            'Bienvenido 👋',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Accede a las funciones disponibles',
-            style: TextStyle(color: Colors.white54, fontSize: 15),
-          ),
-          const SizedBox(height: 32),
-
-          // Tarjeta: Mi Perfil
-          _buildMenuCard(
-            context,
-            icon: Icons.person_rounded,
-            title: 'Mi Perfil',
-            subtitle: 'Ver y editar tus datos personales y foto',
-            gradient: const LinearGradient(
-              colors: [Color(0xFF7C6FF7), Color(0xFF5A4FCF)],
-            ),
-            onTap: () {
-              // Navegamos directamente a la pestaña de Perfil (índice 3)
-              setState(() {
-                _selectedIndex = 3;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-
-          // Tarjeta: Explorar Eventos
-          _buildMenuCard(
-            context,
-            icon: Icons.local_activity_rounded,
-            title: 'Explorar Eventos',
-            subtitle: 'Descubre los próximos conciertos',
-            gradient: const LinearGradient(
-              colors: [Color(0xFF16213E), Color(0xFF0F3460)],
-            ),
-            onTap: () => Navigator.pushNamed(context, '/products'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Gradient gradient,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(20),
-            splashColor: Colors.white.withOpacity(0.1),
-            child: Padding(
-              padding: const EdgeInsets.all(22),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(icon, color: Colors.white, size: 28),
-                  ),
-                  const SizedBox(width: 18),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: Colors.white.withOpacity(0.6),
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
       ),
     );

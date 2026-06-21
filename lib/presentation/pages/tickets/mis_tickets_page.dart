@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../state/compra_provider.dart';
+import '../../../data/models/mis_ticket_model.dart';
+import 'transferir_ticket_sheet.dart';
 
 
 class MisTicketsPage extends StatefulWidget {
@@ -17,6 +19,15 @@ class _MisTicketsPageState extends State<MisTicketsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CompraProvider>(context, listen: false).loadMisTickets();
     });
+  }
+
+  void _mostrarTransferirSheet(MisTicketModel ticket) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => TransferirTicketSheet(ticket: ticket),
+    );
   }
 
   String _formatFecha(DateTime date) {
@@ -306,10 +317,12 @@ class _MisTicketsPageState extends State<MisTicketsPage> {
                           ),
                         ),
 
-                        // Parte inferior: QR Placeholder y código único
+                        // Parte inferior: QR Placeholder, código y acciones
                         Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Row(
+                          child: Column(
+                            children: [
+                              Row(
                             children: [
                               Expanded(
                                 child: Column(
@@ -332,7 +345,9 @@ class _MisTicketsPageState extends State<MisTicketsPage> {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Presenta el ticket digital en la entrada del evento.',
+                                      ticket.transferido
+                                          ? 'Este ticket ya fue transferido.'
+                                          : 'Presenta el ticket digital en la entrada del evento.',
                                       style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10),
                                     ),
                                   ],
@@ -340,7 +355,6 @@ class _MisTicketsPageState extends State<MisTicketsPage> {
                               ),
                               const SizedBox(width: 16),
                               
-                              // QR Code Placeholder premium (cuadrícula estilizada)
                               Container(
                                 width: 70,
                                 height: 70,
@@ -353,6 +367,27 @@ class _MisTicketsPageState extends State<MisTicketsPage> {
                                   painter: QrPainter(),
                                 ),
                               ),
+                            ],
+                          ),
+                              if (ticket.transferible) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => _mostrarTransferirSheet(ticket),
+                                    icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                                    label: const Text('Transferir a otro fan'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: themeColor,
+                                      side: BorderSide(color: themeColor.withOpacity(0.5)),
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),

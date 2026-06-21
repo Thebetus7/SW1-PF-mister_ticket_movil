@@ -94,6 +94,40 @@ class CancionProvider extends ChangeNotifier {
     }
   }
 
+  /// Alterna el estado de publicación de una canción del artista autenticado (pública/privada).
+  /// Realiza la petición al backend y actualiza reactivamente la canción en la lista en memoria.
+  Future<bool> togglePublicado(int id, bool actualPublicado) async {
+    _errorMessage = null;
+    try {
+      final nuevoPublicado = !actualPublicado;
+      await _repository.updateCancionPublicada(id, nuevoPublicado);
+      
+      // Actualizar la canción en la lista local para refrescar la UI de forma reactiva
+      final index = _canciones.indexWhere((c) => c['id'] == id);
+      if (index != -1) {
+        _canciones[index]['publicado'] = nuevoPublicado;
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Obtiene la lista de canciones públicas (publicado=true) de un artista específico.
+  /// Se utiliza principalmente en la vista de fans para la reproducción musical en el modal de detalles del artista.
+  Future<List<dynamic>> loadCancionesDeArtista(int artistaId) async {
+    try {
+      return await _repository.getCancionesPorArtista(artistaId);
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return [];
+    }
+  }
+
   void clearError() {
     _errorMessage = null;
     notifyListeners();

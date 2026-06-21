@@ -541,6 +541,8 @@ class _PerfilPageState extends State<PerfilPage> with SingleTickerProviderStateM
 
             // Información de solo lectura
             _buildInfoCard(profileProvider),
+            const SizedBox(height: 16),
+            _buildConfiguracionCard(profileProvider),
             const SizedBox(height: 24),
 
             // Botón Guardar (solo en modo edición)
@@ -680,6 +682,67 @@ class _PerfilPageState extends State<PerfilPage> with SingleTickerProviderStateM
             profileProvider.roles.join(', ').toUpperCase().isEmpty
                 ? 'Sin roles asignados'
                 : profileProvider.roles.join(', '),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfiguracionCard(ProfileProvider profileProvider) {
+    final bool recibirNotif = profileProvider.profileData?['recibir_notificaciones'] ?? true;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E2E),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF2A2A4E)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Configuraciones',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.notifications_active_rounded, color: Color(0xFF7C6FF7), size: 18),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Recibir notificaciones',
+                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13),
+                  ),
+                ],
+              ),
+              Switch(
+                value: recibirNotif,
+                activeColor: const Color(0xFF7C6FF7),
+                activeTrackColor: const Color(0xFF7C6FF7).withOpacity(0.3),
+                inactiveThumbColor: Colors.grey[400],
+                inactiveTrackColor: Colors.white10,
+                onChanged: (bool value) async {
+                  final success = await profileProvider.updateProfileData({
+                    'recibir_notificaciones': value,
+                  });
+                  if (!mounted) return;
+                  if (success) {
+                    _showSnackBar('Preferencia de notificaciones actualizada', isError: false);
+                  } else {
+                    _showSnackBar('No se pudo actualizar la preferencia', isError: true);
+                  }
+                },
+              ),
+            ],
           ),
         ],
       ),

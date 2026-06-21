@@ -1,8 +1,10 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../data/models/evento_feed.dart';
+import '../../state/profile_provider.dart';
 import '../compra/seleccion_zona_page.dart';
-
+import 'widgets/evento_interacciones_bar.dart';
+import 'widgets/evento_elenco_seccion.dart';
 
 class EventoFeedCard extends StatefulWidget {
   final EventoFeedModel evento;
@@ -14,19 +16,11 @@ class EventoFeedCard extends StatefulWidget {
 }
 
 class _EventoFeedCardState extends State<EventoFeedCard> {
-  bool _isLiked = false;
-  int _likesCount = 0;
-  late int _commentsCount;
   late final List<Color> _gradientColors;
 
   @override
   void initState() {
     super.initState();
-    // Generar datos ficticios basados en el ID del evento para consistencia
-    final random = Random(widget.evento.id);
-    _likesCount = random.nextInt(450) + 50;
-    _commentsCount = random.nextInt(80) + 5;
-
     // Generar un degradado único para cada evento como fondo visual representativo
     final gradients = [
       [const Color(0xFF8A2387), const Color(0xFFE94057), const Color(0xFFF27121)],
@@ -56,6 +50,8 @@ class _EventoFeedCardState extends State<EventoFeedCard> {
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).primaryColor;
+    final profileProvider = Provider.of<ProfileProvider>(context);
+    final isFan = profileProvider.roles.contains('fan');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -96,6 +92,8 @@ class _EventoFeedCardState extends State<EventoFeedCard> {
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
                       Row(
@@ -167,6 +165,7 @@ class _EventoFeedCardState extends State<EventoFeedCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
+                        // Corrección de Overflow: Título del evento con límite de 2 líneas
                         Text(
                           widget.evento.nombre.toUpperCase(),
                           style: const TextStyle(
@@ -178,6 +177,8 @@ class _EventoFeedCardState extends State<EventoFeedCard> {
                               Shadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 4)),
                             ],
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -229,219 +230,60 @@ class _EventoFeedCardState extends State<EventoFeedCard> {
             ),
           ),
 
-          // 4. Botón Comprar Boletos - Centrado y con dimensiones fijas corregidas
-          Center(
-            child: Container(
-              width: 180,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF7C6FF7), Color(0xFFE100FF)],
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF7C6FF7).withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+          // 4. Botón Comprar Boletos - Centrado y con dimensiones fijas (Solo visible para fans)
+          if (isFan)
+            Center(
+              child: Container(
+                width: 180,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF7C6FF7), Color(0xFFE100FF)],
                   ),
-                ],
-              ),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  padding: EdgeInsets.zero,
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SeleccionZonaPage(
-                        eventoId: widget.evento.id,
-                        eventoNombre: widget.evento.nombre,
-                      ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF7C6FF7).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
-                  );
-                },
-
-                child: const Text(
-                  'Comprar Boletos',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
+                  ],
                 ),
-              ),
-            ),
-          ),
-
-          // 5. Elenco (Carrusel Horizontal de Artistas)
-          if (widget.evento.presentaciones.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
-              child: Text(
-                'ELENCO DEL SHOW',
-                style: TextStyle(
-                  color: Colors.white38,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 110,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: widget.evento.presentaciones.length,
-                itemBuilder: (context, index) {
-                  final pres = widget.evento.presentaciones[index];
-                  final art = pres.artista;
-                  if (art == null) return const SizedBox.shrink();
-
-                  return Container(
-                    width: 220,
-                    margin: const EdgeInsets.only(right: 12, bottom: 8),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(0.04)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Nombre artístico e icono de popularidad
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                art.nombreArtistico,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            // Indicador de popularidad
-                            Row(
-                              children: [
-                                const Icon(Icons.star_rounded, color: Colors.amber, size: 12),
-                                const SizedBox(width: 2),
-                                Text(
-                                  '${art.popularidad}',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        // Géneros musicales y departamento de origen
-                        Text(
-                          art.generosMusicalesNombres.join(', '),
-                          style: TextStyle(
-                            color: themeColor.withOpacity(0.8),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-
-                        // Origen y hora de presentación
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            if (art.departamentoOrigenNombre != null)
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on_outlined, color: Colors.white30, size: 10),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    art.departamentoOrigenNombre!,
-                                    style: const TextStyle(color: Colors.white38, fontSize: 9),
-                                  ),
-                                ],
-                              )
-                            else
-                              const SizedBox.shrink(),
-                            Row(
-                              children: [
-                                const Icon(Icons.schedule, color: Colors.white30, size: 10),
-                                const SizedBox(width: 2),
-                                Text(
-                                  _formatHora(pres.tiempoInicio),
-                                  style: const TextStyle(color: Colors.white38, fontSize: 9),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-          
-          // 6. Barra de Acciones Estilo Red Social (Likes, Comentarios, etc) - Al final inferior
-          const SizedBox(height: 12),
-          Divider(color: Colors.white.withOpacity(0.05), height: 1),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: Icon(
-                    _isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    color: _isLiked ? Colors.redAccent : Colors.white70,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    padding: EdgeInsets.zero,
                   ),
                   onPressed: () {
-                    setState(() {
-                      _isLiked = !_isLiked;
-                      _likesCount = _isLiked ? _likesCount + 1 : _likesCount - 1;
-                    });
-                  },
-                ),
-                Text(
-                  '$_likesCount',
-                  style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(Icons.mode_comment_outlined, color: Colors.white70),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Comentarios disponibles en la próxima versión'),
-                        behavior: SnackBarBehavior.floating,
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SeleccionZonaPage(
+                          eventoId: widget.evento.id,
+                          eventoNombre: widget.evento.nombre,
+                        ),
                       ),
                     );
                   },
+                  child: const Text(
+                    'Comprar Boletos',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
+                  ),
                 ),
-                Text(
-                  '$_commentsCount',
-                  style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(Icons.share_outlined, color: Colors.white70),
-                  onPressed: () {},
-                ),
-              ],
+              ),
             ),
+
+          // 5. Elenco (Componente Separado)
+          EventoElencoSeccion(
+            evento: widget.evento,
+            presentaciones: widget.evento.presentaciones,
+          ),
+
+          // 6. Barra de Acciones Estilo Red Social (Componente Separado)
+          EventoInteraccionesBar(
+            evento: widget.evento,
           ),
           
           const SizedBox(height: 8),

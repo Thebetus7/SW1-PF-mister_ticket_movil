@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "76211955774",
+    "project_id": "misterticket-alertas-sw1",
+    "storage_bucket": "misterticket-alertas-sw1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:76211955774:android:65f314cff69cdf5182096f",
+        "android_client_info": {
+          "package_name": "com.example.mister_ticket_movil"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBF9kTTyGRdDpNsk2SkO5gP2lg4ljWve0k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

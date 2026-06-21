@@ -31,4 +31,17 @@ class CancionRepository {
   Future<void> deleteCancion(int id) async {
     await _client.delete('${ApiConstants.canciones}$id/');
   }
+
+  Future<Map<String, dynamic>> updateCancionPublicada(int id, bool publicado) async {
+    final response = await _client.patch(
+      '${ApiConstants.canciones}$id/',
+      body: {'publicado': publicado},
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getCancionesPorArtista(int artistaId) async {
+    final response = await _client.get('${ApiConstants.canciones}?artista_id=$artistaId');
+    return response.data as List<dynamic>;
+  }
 }

@@ -46,4 +46,11 @@ class CompraService {
     }
     return [];
   }
+
+  Future<void> transferirTicket(int ticketId, int destinatarioId) async {
+    final response = await _compraApi.transferirTicket(ticketId, destinatarioId);
+    if (response.data is! Map<String, dynamic>) {
+      throw Exception('Respuesta de transferencia inválida.');
+    }
+  }
 }
