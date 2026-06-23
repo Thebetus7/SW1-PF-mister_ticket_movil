@@ -1,3 +1,25 @@
+// ── Resultado sellado de la compra ───────────────────────────────────────────
+//
+// CompraResult es el tipo que devuelve CompraService.realizarCompra().
+// Permite al provider y a la UI distinguir exactamente qué flujo ocurrió:
+//
+//   CompraStripeResult   → pago síncrono completado; contiene tickets y factura.
+//   CompraLibelulaResult → reserva creada; contiene la URL del WebView de pago.
+//
+sealed class CompraResult {}
+
+class CompraStripeResult extends CompraResult {
+  final CompraResponseModel compraResponse;
+  CompraStripeResult(this.compraResponse);
+}
+
+class CompraLibelulaResult extends CompraResult {
+  final String urlPasarela;
+  CompraLibelulaResult(this.urlPasarela);
+}
+
+// ── Modelos de datos ──────────────────────────────────────────────────────────
+
 class CompraResponseModel {
   final int facturaId;
   final String estadoPago;
@@ -14,16 +36,17 @@ class CompraResponseModel {
   });
 
   factory CompraResponseModel.fromJson(Map<String, dynamic> json) {
-    var ticketList = json['tickets'] as List? ?? [];
-    List<TicketCompradoModel> parsedTickets =
-        ticketList.map((t) => TicketCompradoModel.fromJson(t)).toList();
-
+    final ticketList = json['tickets'] as List? ?? [];
     return CompraResponseModel(
-      facturaId: json['factura_id'],
-      estadoPago: json['estado_pago'] ?? '',
-      precioTotal: double.tryParse(json['precio_total']?.toString() ?? '0.0') ?? 0.0,
-      stripePaymentIntentId: json['stripe_payment_intent_id'] ?? '',
-      tickets: parsedTickets,
+      facturaId: json['factura_id'] as int,
+      estadoPago: json['estado_pago'] as String? ?? '',
+      precioTotal:
+          double.tryParse(json['precio_total']?.toString() ?? '0') ?? 0.0,
+      stripePaymentIntentId:
+          json['stripe_payment_intent_id'] as String? ?? '',
+      tickets: ticketList
+          .map((t) => TicketCompradoModel.fromJson(t as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -47,15 +70,16 @@ class TicketCompradoModel {
 
   factory TicketCompradoModel.fromJson(Map<String, dynamic> json) {
     return TicketCompradoModel(
-      id: json['id'],
-      codigoQr: json['codigo_qr'] ?? '',
-      zonaNombre: json['zona_nombre'] ?? '',
-      eventoNombre: json['evento_nombre'] ?? '',
+      id: json['id'] as int,
+      codigoQr: json['codigo_qr'] as String? ?? '',
+      zonaNombre: json['zona_nombre'] as String? ?? '',
+      eventoNombre: json['evento_nombre'] as String? ?? '',
       eventoFecha: json['evento_fecha'] != null
-          ? DateTime.parse(json['evento_fecha'])
+          ? DateTime.parse(json['evento_fecha'] as String)
           : DateTime.now(),
       asientoDetalle: json['asiento_detalle'] != null
-          ? AsientoDetalleModel.fromJson(json['asiento_detalle'])
+          ? AsientoDetalleModel.fromJson(
+              json['asiento_detalle'] as Map<String, dynamic>)
           : null,
     );
   }
@@ -74,9 +98,9 @@ class AsientoDetalleModel {
 
   factory AsientoDetalleModel.fromJson(Map<String, dynamic> json) {
     return AsientoDetalleModel(
-      id: json['id'],
-      fila: json['fila'] ?? 0,
-      columna: json['columna'] ?? 0,
+      id: json['id'] as int,
+      fila: json['fila'] as int? ?? 0,
+      columna: json['columna'] as int? ?? 0,
     );
   }
 }

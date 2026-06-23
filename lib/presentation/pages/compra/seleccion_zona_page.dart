@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../state/compra_provider.dart';
+import '../../../data/models/compra_response_model.dart';
 import '../../../data/models/zona_model.dart';
 import 'checkout_page.dart';
 import 'confirmacion_compra_page.dart';
+import 'libelula_webview_screen.dart';
 
 
 class SeleccionZonaPage extends StatefulWidget {
@@ -159,23 +161,17 @@ class _SeleccionZonaPageState extends State<SeleccionZonaPage> {
                 ),
                 const SizedBox(height: 12),
                 
-                // Opción 3: QR Placeholder
+                // Opción 3: Libélula (QR)
                 ElevatedButton.icon(
                   onPressed: () {
-                    Navigator.pop(ctx); // Cerrar bottom sheet
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Pago por QR (Simulado) estará disponible en la versión final de producción.'),
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: Color(0xFF7C6FF7),
-                      ),
-                    );
+                    Navigator.pop(ctx);
+                    _ejecutarCompraLibelula(selectedZona);
                   },
-                  icon: const Icon(Icons.qr_code_2_rounded, color: Colors.white30),
-                  label: const Text('PAGAR CON QR (PLACEHOLDER)'),
+                  icon: const Icon(Icons.qr_code_2_rounded, color: Colors.white),
+                  label: const Text('PAGAR CON QR (LIBÉLULA)'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3E2D54).withOpacity(0.5),
-                    foregroundColor: Colors.white30,
+                    backgroundColor: const Color(0xFF1A3A5C),
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -196,10 +192,11 @@ class _SeleccionZonaPageState extends State<SeleccionZonaPage> {
     });
 
     final provider = Provider.of<CompraProvider>(context, listen: false);
-    final success = await provider.comprar(
+    final result = await provider.comprar(
       eventoId: widget.eventoId,
       zonaId: selectedZona.id,
       cantidad: _cantidad,
+      metodoPago: 'stripe',
       paymentMethodId: 'pm_desarrollo_directo',
     );
 
@@ -208,7 +205,7 @@ class _SeleccionZonaPageState extends State<SeleccionZonaPage> {
         _isProcessingDirect = false;
       });
 
-      if (success) {
+      if (result != null) {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
@@ -230,6 +227,58 @@ class _SeleccionZonaPageState extends State<SeleccionZonaPage> {
     }
   }
 
+
+  Future<void> _ejecutarCompraLibelula(ZonaModel selectedZona) async {
+    setState(() => _isProcessingDirect = true);
+
+    final provider = Provider.of<CompraProvider>(context, listen: false);
+    final result = await provider.comprar(
+      eventoId: widget.eventoId,
+      zonaId: selectedZona.id,
+      cantidad: _cantidad,
+      metodoPago: 'libelula',
+      urlRetorno: 'miapp://pago-completado',
+    );
+
+    if (!mounted) return;
+    setState(() => _isProcessingDirect = false);
+
+    if (result is CompraLibelulaResult) {
+      final pagado = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => LibelulaWebViewScreen(url: result.urlPasarela),
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (pagado == true) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/dashboard',
+          (route) => false,
+          arguments: 2, // pestaña Mis Tickets
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reserva pendiente. Tienes 15 minutos para completar el pago.'),
+            backgroundColor: Color(0xFF7C6FF7),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.error ?? 'Error al crear la reserva con Libélula.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

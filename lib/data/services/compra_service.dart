@@ -12,45 +12,76 @@ class CompraService {
   Future<List<ZonaModel>> getZonasEvento(int eventoId) async {
     final response = await _compraApi.getZonasEvento(eventoId);
     if (response.data is List) {
-      final List<dynamic> data = response.data as List<dynamic>;
-      return data.map((json) => ZonaModel.fromJson(json)).toList();
+      return (response.data as List)
+          .map((json) => ZonaModel.fromJson(json as Map<String, dynamic>))
+          .toList();
     }
     return [];
   }
 
-  Future<CompraResponseModel> realizarCompra({
+  /// Realiza la compra enrutando según [metodoPago]:
+  ///
+  /// - `'stripe'`   → requiere [paymentMethodId]; devuelve [CompraStripeResult]
+  ///                  con la factura y los tickets activos.
+  /// - `'libelula'` → [paymentMethodId] se ignora; devuelve [CompraLibelulaResult]
+  ///                  con la URL del WebView donde el usuario completa el pago.
+  Future<CompraResult> realizarCompra({
     required int eventoId,
     required int zonaId,
     required int cantidad,
-    required String paymentMethodId,
+    required String metodoPago,
+    String? paymentMethodId,
+    String? urlRetorno,
   }) async {
-    final body = {
+    final body = <String, dynamic>{
       'evento_id': eventoId,
       'zona_id': zonaId,
       'cantidad': cantidad,
-      'payment_method_id': paymentMethodId,
+      'metodo_pago': metodoPago,
     };
+
+    if (metodoPago == 'stripe' &&
+        paymentMethodId != null &&
+        paymentMethodId.isNotEmpty) {
+      body['payment_method_id'] = paymentMethodId;
+    }
+
+    if (metodoPago == 'libelula') {
+      body['url_retorno'] = urlRetorno ?? '';
+    }
+
     final response = await _compraApi.realizarCompra(body);
-    if (response.data is Map<String, dynamic>) {
-      return CompraResponseModel.fromJson(response.data as Map<String, dynamic>);
+
+    if (response.data is! Map<String, dynamic>) {
+      throw Exception('Formato de respuesta de compra invalido.');
+    }
+
+    final data = response.data as Map<String, dynamic>;
+
+    if (metodoPago == 'libelula') {
+      final url = data['url_pasarela_pagos'] as String?;
+      if (url == null || url.isEmpty) {
+        throw Exception(
+            'La pasarela no devolvio una URL de pago. Intenta de nuevo.');
+      }
+      return CompraLibelulaResult(url);
     } else {
-      throw Exception('Formato de respuesta de compra inválido.');
+      return CompraStripeResult(CompraResponseModel.fromJson(data));
     }
   }
 
-  Future<List<MisTicketModel>> getMisTickets({String filtro = 'comprados'}) async {
+  Future<List<MisTicketModel>> getMisTickets(
+      {String filtro = 'comprados'}) async {
     final response = await _compraApi.getMisTickets(filtro: filtro);
     if (response.data is List) {
-      final List<dynamic> data = response.data as List<dynamic>;
-      return data.map((json) => MisTicketModel.fromJson(json)).toList();
+      return (response.data as List)
+          .map((json) => MisTicketModel.fromJson(json as Map<String, dynamic>))
+          .toList();
     }
     return [];
   }
 
   Future<void> transferirTicket(int ticketId, int destinatarioId) async {
-    final response = await _compraApi.transferirTicket(ticketId, destinatarioId);
-    if (response.data is! Map<String, dynamic>) {
-      throw Exception('Respuesta de transferencia inválida.');
-    }
+    await _compraApi.transferirTicket(ticketId, destinatarioId);
   }
 }
