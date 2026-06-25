@@ -18,7 +18,7 @@ class ApiConstants {
   // flutter run --dart-define=API_URL=http://<IP>:8000/api
   static const String baseUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'https://jeffry-sorriest-benny.ngrok-free.dev/api',
+    defaultValue: 'http://192.168.1.100:8000/api',
   );
 
   // Auth endpoints
